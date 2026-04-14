@@ -1,5 +1,6 @@
 # End-to-End Data Cleaning and Analysis of Global Layoffs using SQL (Databricks)
-select count(*) from layoffs;
+It can all be found on https://bit.ly/layoff_databricks_Aime
+
 
 
 ## 1. Data Cleaning
@@ -19,6 +20,8 @@ select count(*) from layoffs;
 -- Countries with highest layoffs
 -- Peak layoff periods and trends
 -- Top 5 companies per year (DENSE_RANK)
+
+SELECT count(*) FROM layoffs;
 
 CREATE TABLE layoffs_staging
 LIKE layoffs;
@@ -322,3 +325,4 @@ SELECT *
 FROM Ranked
 WHERE ranking <= 5
 ORDER BY Y, ranking;
+
