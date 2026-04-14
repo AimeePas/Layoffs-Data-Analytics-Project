@@ -80,4 +80,18 @@ A large absolute layoff number does not always mean a larger impact  bigger comp
 This pattern is clearly visible in the dataset:
 
 - Google (2023) and Microsoft (2023) both recorded ~10,000–12,000 layoffs, but their impact is relatively lower due to their large global workforce.
-In contrast, Katerra (2021) lost 2,434 employees, which represents 100% of its workforce, indicating complete shutdown Aime, 2023
+In contrast, Katerra (2021) lost 2,434 employees, which represents 100% of its workforce, indicating complete shutdown.
+
+- Due to the COVID-19 pandemic in 2020, many companies experienced increased layoffs by early 2023.
+  
+- Industries with the Most Layoffs: Consumers & retail were hit hard, likely due to office closures during the pandemic.
+  
+- Countries with the Most Layoffs: The United States had the most layoffs, with 256,420.
+ 
+- Locations with the Most Layoffs: The SF Bay Area had the highest number, with 125,551, likely due to higher COVID-19 cases.
+
+## Suggestion Strategy
+
+- Provide specialized assistance programs for industries such as retail, transportation, and real estate, including financial aid packages, retraining programs, and staff retention incentives.
+  
+- Implement early warning systems and trend tracking to anticipate and address possible layoff surges, allowing for proactive measures to lessen the effects.
