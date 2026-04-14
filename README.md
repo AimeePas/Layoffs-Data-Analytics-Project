@@ -12,7 +12,7 @@ So I treated it like I would treat a real-world analytics problem.
 
 My goal wasn’t just to analyse the data; it was to understand it first, then clean it second, extract meaningful insights to support better decision-making across different organisations for future strategies. 
 
-
+Cleaning & Analytics Project Code: https://bit.ly/layoff_databricks_Aime
 
 ## 🧹 Step 1: Cleaning the data
 
