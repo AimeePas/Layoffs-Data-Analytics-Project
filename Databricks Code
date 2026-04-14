@@ -1,0 +1,324 @@
+# End-to-End Data Cleaning and Analysis of Global Layoffs using SQL (Databricks)
+select count(*) from layoffs;
+
+
+## 1. Data Cleaning
+-- Remove Duplicates (ROW_NUMBER, delete row_num > 1)
+-- Standardise the data (TRIM, fix industry & country)
+-- Transform (TRY_CAST, TO_DATE, correct data types)
+-- Remove NULL / Blank values (replace 'NULL', fill missing data)
+
+## 2. Exploratory Data Analysis (EDA)
+-- Total layoffs by company, industry, country, stage
+-- Yearly and monthly layoff trends
+-- Rolling total layoffs over time
+-- Basic aggregations (SUM, AVG, GROUP BY)
+
+## 3. Advanced Analysis / Insights
+-- Industries most affected over time
+-- Countries with highest layoffs
+-- Peak layoff periods and trends
+-- Top 5 companies per year (DENSE_RANK)
+
+CREATE TABLE layoffs_staging
+LIKE layoffs;
+
+
+SELECT *
+FROM layoffs_staging;
+
+
+INSERT layoffs_staging
+SELECT *
+FROM layoffs
+;
+
+
+
+## DUPLICATES
+SELECT *,
+ROW_NUMBER() OVER(
+PARTITION BY company, industry, total_laid_off, percentage_laid_off, `date` ORDER BY company) AS row_num
+FROM layoffs_staging;
+
+
+WITH duplicates_cte AS
+(SELECT *,
+ROW_NUMBER() OVER(
+PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, country,funds_raised_millions
+ORDER BY company) AS row_num
+FROM layoffs_staging)
+
+SELECT * 
+FROM duplicates_cte
+WHERE row_num > 1;
+
+
+SELECT *
+FROM layoffs_staging
+WHERE company = 'Oda';
+
+
+## Create new table with row_num column
+CREATE TABLE layoffs_staging2 (
+  company STRING,
+  location STRING,
+  industry STRING,
+  total_laid_off STRING,
+  percentage_laid_off STRING,
+  `date` STRING,
+  stage STRING,
+  country STRING,
+  funds_raised_millions STRING,
+  row_num INT
+);
+
+
+INSERT INTO layoffs_staging2
+SELECT *,
+  ROW_NUMBER() OVER(
+    PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, country, funds_raised_millions
+    ORDER BY company) AS row_num
+FROM layoffs_staging;
+
+
+delete
+FROM layoffs_staging2
+WHERE row_num >1;
+
+
+SELECT *
+FROM layoffs_staging2
+WHERE row_num >1;
+
+
+
+## STANDARDISING DATA
+## TRIM REMOVE WHITE SPACE
+SELECT company
+,TRIM(company
+)
+FROM layoffs_staging2
+;
+
+
+UPDATE layoffs_staging2
+SET company = TRIM(company
+)
+;
+
+SELECT DISTINCT (industry )
+FROM layoffs_staging2
+ORDER BY 1
+;
+
+SELECT *
+FROM layoffs_staging2
+WHERE industry LIKE 'Crypto%';
+
+
+UPDATE layoffs_staging2
+SET industry = 'Crypto'
+WHERE industry LIKE 'Crypto%';
+
+
+SELECT DISTINCT ()
+FROM layoffs_staging2
+ORDER BY 1;
+
+
+SELECT distinct(country)
+FROM layoffs_staging2
+WHERE country LIKE '%United States%';
+
+
+UPDATE layoffs_staging2
+SET country = 'United States'
+WHERE country LIKE '%United States%';
+
+
+SELECT `date`,
+TRY_TO_DATE(`date`,'M/d/yyyy')
+FROM layoffs_staging2;
+
+
+UPDATE layoffs_staging2
+SET `date` = TRY_TO_DATE(`date`,'M/d/yyyy');
+
+SELECT `date`
+FROM layoffs_staging2;
+
+DESCRIBE HISTORY layoffs_staging2;
+RESTORE TABLE layoffs_staging2 TO VERSION AS OF 6;
+
+ALTER TABLE layoffs_staging2
+ADD COLUMN date_clean DATE;
+UPDATE layoffs_staging2
+SET date_clean = to_date(date, 'yyyy-MM-dd');
+
+
+SELECT date
+FROM layoffs_staging2
+LIMIT 10;
+ALTER TABLE layoffs_staging2
+SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name');
+ALTER TABLE layoffs_staging2
+DROP COLUMN `date`;
+
+ALTER TABLE layoffs_staging2
+RENAME COLUMN date_clean to `date`;
+
+
+
+
+
+## NULLS
+SELECT *
+FROM layoffs_staging2
+WHERE total_laid_off = 'NULL' 
+AND percentage_laid_off = 'NULL'
+;
+## NULLS
+DELETE
+FROM layoffs_staging2
+WHERE total_laid_off = 'NULL' 
+AND percentage_laid_off = 'NULL'
+
+SELECT *
+FROM layoffs_staging2
+WHERE industry IS NULL OR industry = 'NULL';
+
+
+
+SELECT *
+FROM layoffs_staging2
+WHERE company = 'Airbnb';
+
+UPDATE  layoffs_staging2 
+SET  industry = NULL
+where industry ='NULL' OR industry ='';
+
+SELECT t1.industry, t2.industry
+FROM layoffs_staging2 t1
+JOIN  layoffs_staging2 t2 ON 
+t1.company = t2.company
+And t1.location = t2.location
+WHERE (t1.industry IS NULL )
+AND (t2.industry IS NOT NULL );
+
+MERGE INTO layoffs_staging2 t1
+USING (SELECT DISTINCT company, location, industry FROM layoffs_staging2 WHERE industry IS NOT NULL) t2
+ON t1.company = t2.company AND t1.location = t2.location
+WHEN MATCHED AND t1.industry IS NULL
+THEN UPDATE SET t1.industry = t2.industry;
+
+SELECT *
+FROM layoffs_staging2
+WHERE industry IS NULL OR industry = 'NULL';
+
+SELECT DISTINCT(industry)
+FROM layoffs_staging2; 
+
+ALTER TABLE layoffs_staging2
+DROP COLUMN row_num;
+
+
+
+## EDA
+
+
+
+CREATE OR REPLACE TABLE layoffs_clean AS
+SELECT 
+    company,
+    location,
+    TRIM(industry) AS industry,
+    TRY_CAST(total_laid_off AS INT) AS total_laid_off,
+    TRY_CAST(percentage_laid_off AS DOUBLE) AS percentage_laid_off,
+    to_date(date) AS date,
+    stage,
+    TRIM(country) AS country,
+    TRY_CAST(funds_raised_millions AS DOUBLE) AS funds_raised_millions
+FROM layoffs_staging2;
+
+SELECT * 
+FROM layoffs_clean;
+SELECT MAX (total_laid_off)
+FROM layoffs_clean;
+
+## Industry that was hit the most
+SELECT industry, SUM (total_laid_off)
+FROM layoffs_clean
+WHERE company = 'Cancstar'
+Group by industry
+ORDER BY SUM(total_laid_off
+) DESC;
+
+## Company that layedd off the most
+SELECT company, SUM(total_laid_off)
+FROM layoffs_clean
+GROUP BY company
+ORDER BY SUM(total_laid_off) DESC;
+
+## Country that was affected the most 
+
+SELECT country, SUM(total_laid_off)
+FROM layoffs_clean
+GROUP BY country
+ORDER BY 2 DESC;
+
+## Year that was affected the most
+SELECT Year(`date`), SUM(total_laid_off)
+FROM layoffs_clean
+GROUP BY 1
+ORDER BY 1 DESC;
+
+
+SELECT stage, SUM(total_laid_off)
+FROM layoffs_clean
+GROUP BY 1
+ORDER BY 2 DESC;
+
+## Percentage Layed off
+
+SELECT company, AVG(percentage_laid_off)
+FROM layoffs_clean
+GROUP BY 1
+ORDER BY 2 DESC;
+
+## Progression of the Lay Offs Per Month of each Year
+
+SELECT substring(`date`, 1,7 ) AS Month_Y, SUM(total_laid_off)
+FROM layoffs_clean
+GROUP BY 1
+ORDER BY 1 ASC;
+
+WITH Rolling_Total AS(
+SELECT substring(`date`, 1,7 ) AS Month_Y, SUM(total_laid_off) AS total_off
+FROM layoffs_clean
+WHERE substring(`date`, 1,7 ) IS NOT NULL
+GROUP BY 1
+ORDER BY 1 ASC)
+
+SELECT Month_Y , total_off, SUM(total_off) Over (ORDER BY Month_Y) As rolling_Total
+FROM Rolling_Total;
+
+
+## Top 5 Companies with the Lay Offs Per Year 
+
+
+WITH Company_Year AS(
+SELECT company,  Year(`date`) AS Y, SUM(total_laid_off) AS total_off, AVG(percentage_laid_off) AS AVG_percentage
+FROM layoffs_clean
+WHERE ( `date` IS NOT NULL )
+GROUP BY 1,2
+HAVING  (SUM(total_laid_off)) IS NOT NULL AND AVG(percentage_laid_off) IS NOT NULL
+),
+
+Ranked As(SELECT *,
+DENSE_RANK() OVER (PARTITION BY Y  ORDER BY total_off DESC) AS Ranking
+FROM Company_Year)
+SELECT *
+FROM Ranked
+WHERE ranking <= 5
+ORDER BY Y, ranking;
